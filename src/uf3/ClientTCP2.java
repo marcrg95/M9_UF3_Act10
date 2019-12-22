@@ -1,6 +1,5 @@
 package uf3;
 
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -9,73 +8,26 @@ import java.net.Socket;
 import java.util.Scanner;
 
 public class ClientTCP2 {
+
 	static class Connexio implements Runnable {
 
-		Socket client;
-		String nom;
-		PrintWriter fsortida;
+		BufferedReader fentrada;
 
-		public Connexio(Socket client, String nom, PrintWriter fsortida) {
-			this.client = client;
-			this.nom = nom;
-			this.fsortida = fsortida;
+		public Connexio(BufferedReader fentrada) {
+			this.fentrada = fentrada;
 		}
 
 		@Override
 		public void run() {
 
-			//FLUX D'ENTRADA AL SERVIDOR
-			BufferedReader fentrada = null;
-			try {
-				fentrada = new BufferedReader(new InputStreamReader(client.getInputStream()));
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-			//FLUX PER A ENTRADA ESTÀNDARD
-			BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-
-			String cadena = null, eco = "";
-
-			System.out.println("Introdueix la cadena: ");
-			//Lectura teclat
-			try {
-				cadena = in.readLine();
-
-				if (cadena.equals("exit")) {
-					fsortida.println(cadena);
-					fsortida.close();
-					fentrada.close();
-					System.out.println("Finalització de l'enviament...");
-					in.close();
-					client.close();
-				}
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-			while (!cadena.equals("exit")) {
-
-				//Enviament cadena al servidor
-				fsortida.println(cadena);
-				//Rebuda cadena del servidor
+			boolean exit = false;
+			while(!exit) {
 				try {
-					eco = fentrada.readLine();
+					System.out.println(fentrada.readLine());
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					exit = true;
 				}
-				System.out.println("  =>ECO: "+eco);
-				//Lectura del teclat
-				try {
-					cadena = in.readLine();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-
 			}
 
 		}
@@ -86,7 +38,7 @@ public class ClientTCP2 {
 
 		Scanner scan = new Scanner(System.in);
 
-		System.out.println("Itrodueix un nom:");
+		System.out.println("Introdueix un nom:");
 		String nom = scan.next();
 
 		String host = "localhost";
@@ -97,10 +49,41 @@ public class ClientTCP2 {
 		PrintWriter fsortida;
 		fsortida = new PrintWriter(client.getOutputStream(), true);
 		fsortida.println(nom);
-		Connexio connexio = new Connexio(client, nom, fsortida);
+		//FLUX D'ENTRADA AL SERVIDOR
+		BufferedReader fentrada = null;
+		fentrada = new BufferedReader(new InputStreamReader(client.getInputStream()));
+
+		Connexio connexio = new Connexio(fentrada);
 		Thread fil = new Thread(connexio, nom);
 		fil.start();
 
+		//FLUX PER A ENTRADA ESTÀNDARD
+		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+
+		String cadena = null, eco = "";
+
+		System.out.println("Introdueix la cadena: ");
+		//Lectura teclat
+		cadena = in.readLine();
+
+		while (!cadena.equals("exit")) {
+
+			//Enviament cadena al servidor
+			fsortida.println(cadena);
+			//Rebuda cadena del servidor
+			eco = fentrada.readLine();
+			System.out.println(eco);
+			//Lectura del teclat
+			cadena = in.readLine();
+
+		}
+		
+		fsortida.println(cadena);
+		fsortida.close();
+		fentrada.close();
+		System.out.println("Finalització de l'enviament...");
+		in.close();
+		client.close();
 
 	}
 
